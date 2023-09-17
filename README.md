@@ -1,7 +1,7 @@
 # CITS4403 Project
 Early set up for the coming project
 <br/>
-**Set up for the collaborating project**
+**Set up for the collaboration**
 
 - Use of git personal access token: https://mgimond.github.io/Colby-summer-git-workshop-2021/authenticating-with-github.html#saving-tokens-in-mac
 1. Link your github account to Colab: https://colab.research.google.com/github/googlecolab/colabtools/blob/master/notebooks/colab-github-demo.ipynb#scrollTo=Rmai0dD30XzL
