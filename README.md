@@ -1,7 +1,7 @@
 # CITS4403 Project
 Early set up for the coming project
 <br/>
-**Set up for the collaboration**
+## Set up for the collaboration
 
 - Use of git personal access token: https://mgimond.github.io/Colby-summer-git-workshop-2021/authenticating-with-github.html#saving-tokens-in-mac
 1. Link your github account to Colab: https://colab.research.google.com/github/googlecolab/colabtools/blob/master/notebooks/colab-github-demo.ipynb#scrollTo=Rmai0dD30XzL
@@ -15,8 +15,8 @@ Early set up for the coming project
 - using git SSH key in Colab: https://github.com/tsunrise/colab-github
 
 
-**Report**
-# 1. Background [5 marks]
+## Report
+### 1. Background [5 marks]
 a. Problem statement: describe the situation that you are going to simulate
 and analyze.
 b. Importance discussion: illustrate the importance of your selected case
@@ -24,7 +24,7 @@ study, supported with related literature reference (e.g. published journals
 or books).
 c. Overview: an overview of the report, including the model you use and the
 conclusion you make based on the simulation results.
-# 2. Model Description [10 marks]
+### 2. Model Description [10 marks]
 Demonstrate clear and solid computational modeling thinking, provide a clear
 modeling process, including:
 a. Explain why your selected type of model is suitable for your chosen case,
@@ -37,7 +37,7 @@ for your model.
 *Note: Your submitted .ipynb file should contain the corresponding code
 implementation of your described model. Detailed code comments should be given
 regarding your model details: rules, initial configuration, parameters etc.
-# 3. Results [10 marks]
+### 3. Results [10 marks]
 Describe and discuss the simulation results, including:
 a. Results visualization and discussion [5 marks]:
 ● Visualization of the initial configuration and the visualization of the
