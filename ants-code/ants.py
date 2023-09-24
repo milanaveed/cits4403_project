@@ -206,7 +206,19 @@ class Env(object):
 
 
 class MDP(object):
+    '''
+    The MDP class represents a Markov Decision Process (MDP) used in the ant simulation.
+    It initializes the MDP with transition matrices A, B, and C, and provides methods for state inference, action inference, and other MDP-related operations.
+    '''
     def __init__(self, A, B, C):
+        '''
+        Constructor method that initializes an instance of the `MDP` class.
+
+        Args:
+            A (numpy.ndarray): Transition matrix A.
+            B (numpy.ndarray): Transition matrix B.
+            C (numpy.ndarray): Transition matrix C.
+        '''
         self.A = A
         self.B = B
         self.C = C
@@ -216,6 +228,7 @@ class MDP(object):
         self.num_obs = self.A.shape[0]
         self.num_actions = self.B.shape[0]
 
+        # Modify A, B, and C matrices with p0 and normalize
         self.A = self.A + self.p0
         self.A = self.normdist(self.A)
         self.lnA = np.log(self.A)
@@ -233,11 +246,23 @@ class MDP(object):
         self.t = 0
 
     def set_A(self, A):
+        '''
+        Set the transition matrix A.
+
+        Args:
+            A (numpy.ndarray): New transition matrix A.
+        '''
         self.A = A + self.p0
         self.A = self.normdist(self.A)
         self.lnA = np.log(self.A)
 
     def reset(self, obs):
+        '''
+        Reset the MDP with a new observation.
+
+        Args:
+            obs (int): The new observation.
+        '''
         self.t = 0
         self.curr_obs = obs
         likelihood = self.lnA[obs, :]
@@ -246,14 +271,23 @@ class MDP(object):
         self.prev_action = self.random_action()
 
     def step(self, obs):
-        """ state inference """
+        '''
+        Perform a step in the MDP.
+
+        Args:
+            obs (int): The current observation.
+
+        Returns:
+            int: The selected action.
+        '''
+        # State inference
         likelihood = self.lnA[obs, :]
         likelihood = likelihood[:, np.newaxis]
         prior = np.dot(self.B[self.prev_action], self.sQ)
         prior = np.log(prior)
         self.sQ = self.softmax(prior)
 
-        """ action inference """
+        # Action inference
         SCALE = 10
         neg_efe = np.zeros([self.num_actions, 1])
         for a in range(self.num_actions):
@@ -264,21 +298,36 @@ class MDP(object):
             utility = utility[0]
             neg_efe[a] -= utility / SCALE
 
-        # priors
+        # Priors
         neg_efe[4] -= 20.0
         neg_efe[cf.OPPOSITE_ACTIONS[self.prev_action]] -= 20.0  # type: ignore
 
-        # action selection
+        # Action selection
         self.uQ = self.softmax(neg_efe)
         action = np.argmax(np.random.multinomial(1, self.uQ.squeeze()))
         self.prev_action = action
         return action
 
     def random_action(self):
+        '''
+        Generate a random action.
+
+        Returns:
+            int: A random action.
+        '''
         return int(np.random.choice(range(self.num_actions)))
 
     @staticmethod
     def softmax(x):
+        '''
+        Compute the softmax of an input vector x.
+
+        Args:
+            x (numpy.ndarray): Input vector.
+
+        Returns:
+            numpy.ndarray: Softmax of the input vector.
+        '''
         x = x - x.max()
         x = np.exp(x)
         x = x / np.sum(x)
@@ -286,10 +335,30 @@ class MDP(object):
 
     @staticmethod
     def normdist(x):
+        '''
+        Normalize the input distribution x.
+
+        Args:
+            x (numpy.ndarray): Input distribution.
+
+        Returns:
+            numpy.ndarray: Normalized distribution.
+        '''
         return np.dot(x, np.diag(1 / np.sum(x, 0)))
 
 
 def create_ant(init_x, init_y, C):
+    '''
+    Create an ant with the specified initial position and custom prior C.
+
+    Args:
+        init_x (int): Initial X position.
+        init_y (int): Initial Y position.
+        C (numpy.ndarray): Custom prior matrix C.
+
+    Returns:
+        Ant: The created ant.
+    '''
     A = np.zeros((cf.NUM_OBSERVATIONS, cf.NUM_STATES))
     B = np.zeros((cf.NUM_ACTIONS, cf.NUM_STATES, cf.NUM_STATES))
     for a in range(cf.NUM_ACTIONS):
@@ -300,10 +369,29 @@ def create_ant(init_x, init_y, C):
 
 
 def dis(x1, y1, x2, y2):
+    '''
+    Calculate the Euclidean distance between two points.
+
+    Args:
+        x1 (float): X coordinate of the first point.
+        y1 (float): Y coordinate of the first point.
+        x2 (float): X coordinate of the second point.
+        y2 (float): Y coordinate of the second point.
+
+    Returns:
+        float: Euclidean distance between the two points.
+    '''
     return np.sqrt(((x1 - x2) ** 2) + ((y1 - y2) ** 2))
 
 
 def plot_path(path, save_name):
+    '''
+    Plot a path and save it as an image.
+
+    Args:
+        path (numpy.ndarray): Path to plot.
+        save_name (str): Name of the image file to save.
+    '''
     path = np.array(path)
     _, ax = plt.subplots(1, 1)
     ax.set_xlim(cf.GRID[0])
@@ -314,13 +402,39 @@ def plot_path(path, save_name):
 
 
 def save_gif(imgs, path, fps=32):
+    '''
+    Save a series of images as a GIF.
+
+    Args:
+        imgs (list): List of images to save as frames in the GIF.
+        path (str): Path to save the GIF file.
+        fps (int): Frames per second for the GIF.
+    '''
     imageio.mimsave(path, imgs, fps=fps)
 
 
 def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", ant_only_gif=False):
+    '''
+    The main simulation function that runs the ant simulation.
+
+    Args:
+        num_steps (int): Number of simulation steps.
+        init_ants (int): Number of initial ants.
+        max_ants (int): Maximum number of ants.
+        C (numpy.ndarray): Custom prior matrix C.
+        save (bool): Flag to save images and GIF.
+        switch (bool): Flag to switch food location.
+        name (str): Name for saving simulation files.
+        ant_only_gif (bool): Flag to generate an ant-only GIF.
+
+    Returns:
+        Tuple: A tuple containing the number of completed trips, list of paths, and total distance.
+    '''
+    # Initialize ants and set up the environment
     env = Env()
     ants = []
     paths = []
+
     for _ in range(init_ants):
         ant = create_ant(cf.INIT_X, cf.INIT_Y, C)
         obs = env.get_obs(ant)
@@ -334,17 +448,21 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
     distance = 0
     ant_locations = []
     round_trips_over_time = []
+
     for t in range(num_steps):
         t_dis = 0
-
+        
+        # Calculate total distance between ants
         for ant in ants:
             for ant_2 in ants:
                 t_dis += dis(ant.x_pos, ant.y_pos, ant_2.x_pos, ant_2.y_pos)
         distance += t_dis / len(ants)
 
+        # Display progress
         if t % (num_steps // 100) == 0:
             print(f"{t}/{num_steps}")
 
+        # Add new ants periodically if the maximum number of ants has not been reached
         if t % cf.ADD_ANT_EVERY == 0 and len(ants) < max_ants:
             ant = create_ant(cf.INIT_X, cf.INIT_Y, C)
             obs = env.get_obs(ant)
@@ -353,10 +471,12 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
             ant.mdp.reset(obs)
             ants.append(ant)
 
+        # Switch food location if required (halfway through the simulation)
         if switch and t % (num_steps // 2) == 0:
             # switch
             cf.FOOD_LOCATION[0] = cf.GRID[0] - cf.FOOD_LOCATION[0]
 
+        # Iterate through ants
         for ant in ants:
             if not ant.is_returning:
                 obs = env.get_obs(ant)
@@ -370,8 +490,11 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
 
                 if is_complete:
                     paths.append(traj)
+
+        # Decay the pheromones                    
         env.decay()
 
+        # Save images and collect simulation metrics
         if save:
             if t in np.arange(0, num_steps, num_steps // 20):
                 env.plot(ants, savefig=True, name=f"imgs/{name}_{t}.png")
@@ -379,6 +502,7 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
                 img = env.plot(ants, ant_only_gif=ant_only_gif)
                 imgs.append(img)
 
+        # Store round trips over time and ant locations
         round_trips_over_time.append(completed_trips / max_ants)
         ant_locations.append([[ant.x_pos, ant.y_pos] for ant in ants])
 
@@ -388,6 +512,7 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
         dis_coeff += sum(ant.distance)
     """
 
+    # Save the animated gif of the simulation
     if save:
         save_gif(imgs, f"imgs/{name}.gif")
 
