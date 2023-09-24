@@ -7,36 +7,57 @@ import imageio
 
 matplotlib.use("Agg")
 
-
 class Ant(object):
+    '''
+    An Ant class represents each ant agent and its behavior.
+    '''
     def __init__(self, mdp, init_x, init_y):
-        self.mdp = mdp
-        self.x_pos = init_x
-        self.y_pos = init_y
-        self.traj = [(init_x, init_y)]
-        self.distance = []
-        self.backward_step = 0
-        self.is_returning = False
+        '''
+        Constructor method that initializes an instance of the `Ant` class.
+        '''
+        self.mdp = mdp  # ?  Store the Markov Decision Process (MDP) related to the ant's behavior
+        self.x_pos = init_x  # Initial x coordinate for the ant position
+        self.y_pos = init_y  # Initial y coordinate for the ant position
+        self.traj = [(init_x, init_y)]  # A list to store the trajectory of the ant
+        self.distance = []  # A list to store the distances between the ant's current position and the initial position
+        self.backward_step = 0  # Represnet the number of backward steps taken by the ant
+        self.is_returning = False  # Whether the ant is currently returning to the nest
 
     def update_forward(self, x_pos, y_pos):
+        '''
+        Update the ant's position, trajectory and distance when it moves forward.
+        '''
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.traj.append((x_pos, y_pos))
         self.distance.append(dis(x_pos, y_pos, cf.INIT_X, cf.INIT_Y))
 
     def update_backward(self, x_pos, y_pos):
+        '''
+        Update the ant's position and distance when it moves backward.
+        '''
         self.x_pos = x_pos
         self.y_pos = y_pos
         self.distance.append(dis(x_pos, y_pos, cf.INIT_X, cf.INIT_Y))
 
 
 class Env(object):
+    '''
+    An Env class represents the environment within which the ants move and interact.
+    This class contains methods and attributes to manage the environment, including updating ant positions, handling observations, checking for obstacles, and visualizing the environment. 
+    '''
     def __init__(self):
-        self.visit_matrix = np.zeros((cf.GRID[0], cf.GRID[1]))
-        self.obs_matrix = np.zeros((cf.NUM_OBSERVATIONS, cf.GRID[0], cf.GRID[1]))
-        self.obs_matrix[0, :, :] = 1.0
+        '''
+        Constructor method that initializes an instance of the `Env` class.
+        '''
+        self.visit_matrix = np.zeros((cf.GRID[0], cf.GRID[1]))  # A 2D array to track the visitation count of each location 
+        self.obs_matrix = np.zeros((cf.NUM_OBSERVATIONS, cf.GRID[0], cf.GRID[1])) # A 3D matrix to represent the observation matrix
+        self.obs_matrix[0, :, :] = 1.0  # Initialize the observation matrix with all ones in the first observation, indicating that all locations are initially observable
 
     def get_A(self, ant):
+        '''
+        Return the observation matrix A for a given ant's position.
+        '''
         A = np.zeros((cf.NUM_OBSERVATIONS, cf.NUM_STATES))
         for s in range(cf.NUM_STATES):
             delta = cf.ACTION_MAP[s]
@@ -44,10 +65,16 @@ class Env(object):
         return A
 
     def get_obs(self, ant):
+        '''
+        Return the observation index for a given ant's position.
+        '''
         obs_vec = self.obs_matrix[:, ant.x_pos, ant.y_pos]
         return np.argmax(obs_vec)
 
     def check_food(self, x_pos, y_pos):
+        '''
+        Check if a given position contains food.
+        '''
         is_food = False
         if (x_pos > (cf.FOOD_LOCATION[0] - cf.FOOD_SIZE[0])) and (
             x_pos < (cf.FOOD_LOCATION[0] + cf.FOOD_SIZE[0])
@@ -59,6 +86,9 @@ class Env(object):
         return is_food
 
     def check_walls(self, orig_x, orig_y, x_pos, y_pos):
+        '''
+        Check if an ant encounters walls or obstacles.
+        '''
         valid = True
         if orig_y > cf.WALL_TOP:
             if orig_x >= cf.WALL_LEFT and x_pos <= cf.WALL_LEFT:
@@ -71,17 +101,23 @@ class Env(object):
         return valid
 
     def step_forward(self, ant, action):
+        '''
+        Update an ant's position based on the selected action (direction).
+        '''
         delta = cf.ACTION_MAP[action]
         x_pos = np.clip(ant.x_pos + delta[0], 1, cf.GRID[0] - 2)
         y_pos = np.clip(ant.y_pos + delta[1], 1, cf.GRID[1] - 2)
 
         if self.check_food(x_pos, y_pos) and np.random.rand() < cf.NEST_FACTOR:
+            # If an ant finds food, it starts returning to the nest
             ant.is_returning = True
             ant.backward_step = 0
 
         if self.check_walls(ant.x_pos, ant.y_pos, x_pos, y_pos):
+            # Check for wall collisions and update the ant's position accordingly
             ant.update_forward(x_pos, y_pos)
 
+        # Code for limiting the length of an ant's trajectory
         """
         if len(ant.traj) > cf.MAX_LEN:
             pos = ant.traj[0]
@@ -90,11 +126,15 @@ class Env(object):
         """
 
     def step_backward(self, ant):
+        '''
+        Backward step for an ant returning to the nest.
+        '''
         path_len = len(ant.traj)
         next_step = path_len - (ant.backward_step + 1)
         pos = ant.traj[next_step]
         ant.update_backward(pos[0], pos[1])
 
+        # Update visitation count and observation matrix
         self.visit_matrix[pos[0], pos[1]] += 1
         curr_obs = np.argmax(self.obs_matrix[:, pos[0], pos[1]])
         curr_obs = min(curr_obs + 1, cf.NUM_OBSERVATIONS - 1)
@@ -112,6 +152,9 @@ class Env(object):
             return False, None
 
     def decay(self):
+        ''' 
+        Decay the observation matrix over time.
+        '''
         for x in range(cf.GRID[0]):
             for y in range(cf.GRID[1]):
                 curr_obs = np.argmax(self.obs_matrix[:, x, y])
@@ -121,6 +164,9 @@ class Env(object):
                     self.obs_matrix[curr_obs, x, y] = 1.0
 
     def plot(self, ants, savefig=False, name="", ant_only_gif=False):
+        '''
+        Plot the environment, ant trajectories, and sensory cues.
+        '''
         x_pos_forward, y_pos_forward = [], []
         x_pos_backward, y_pos_backward = [], []
         for ant in ants:
