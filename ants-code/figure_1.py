@@ -9,7 +9,7 @@ NUM_STEPS = 2000  # Number of simulation steps
 INIT_ANTS = 70  # Initial number of ants
 MAX_ANTS = 70  # Maximum number of ants in the simulation
 
-# Create a directory for saving images if doesn't exist
+# Create a directory for saving images if it doesn't exist
 Path("imgs").mkdir(parents=True, exist_ok=True)  
 
 # Define a standard prior for observations
