@@ -1,0 +1,1 @@
+num_round_trips_70 20 / coeff 1809480.12456224

@@ -1,0 +1,2 @@
+num_round_trips_30 11 / coeff 681195.2508997937
+num_round_trips_30 12 / coeff 729934.126846041
