@@ -1,0 +1,1 @@
+num_round_trips 54 / coeff 51160.33083478858
