@@ -1,0 +1,1 @@
+num_round_trips 24 / coeff 25919.526033174352
