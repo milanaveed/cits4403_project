@@ -7,21 +7,27 @@ import imageio
 
 matplotlib.use("Agg")
 
+
 class Ant(object):
     '''
     An Ant class represents each ant agent and its behavior.
     '''
+
     def __init__(self, mdp, init_x, init_y):
         '''
         Constructor method that initializes an instance of the `Ant` class.
         '''
-        self.mdp = mdp  # ?  Store the Markov Decision Process (MDP) related to the ant's behavior
+        self.mdp = mdp  # Store the Markov Decision Process (MDP) related to the ant's behavior
         self.x_pos = init_x  # Initial x coordinate for the ant position
         self.y_pos = init_y  # Initial y coordinate for the ant position
-        self.traj = [(init_x, init_y)]  # A list to store the trajectory of the ant
-        self.distance = []  # A list to store the distances between the ant's current position and the initial position
+        # A list to store the trajectory of the ant
+        self.traj = [(init_x, init_y)]
+        # A list to store the distances between the ant's current position and the initial position
+        self.distance = []
         self.backward_step = 0  # Represnet the number of backward steps taken by the ant
         self.is_returning = False  # Whether the ant is currently returning to the nest
+        # Time of last round trip completed
+        self.last_round_trip_completed_time = 0
 
     def update_forward(self, x_pos, y_pos):
         '''
@@ -46,13 +52,18 @@ class Env(object):
     An Env class represents the environment within which the ants move and interact.
     This class contains methods and attributes to manage the environment, including updating ant positions, handling observations, checking for obstacles, and visualizing the environment. 
     '''
+
     def __init__(self):
         '''
         Constructor method that initializes an instance of the `Env` class.
         '''
-        self.visit_matrix = np.zeros((cf.GRID[0], cf.GRID[1]))  # A 2D array to track the visitation count of each location 
-        self.obs_matrix = np.zeros((cf.NUM_OBSERVATIONS, cf.GRID[0], cf.GRID[1])) # A 3D matrix to represent the observation matrix
-        self.obs_matrix[0, :, :] = 1.0  # Initialize the observation matrix with all ones in the first observation, indicating that all locations are initially observable
+        self.visit_matrix = np.zeros(
+            (cf.GRID[0], cf.GRID[1]))  # A 2D array to track the visitation count of each location
+        # A 3D matrix to represent the observation matrix
+        self.obs_matrix = np.zeros(
+            (cf.NUM_OBSERVATIONS, cf.GRID[0], cf.GRID[1]))
+        # Initialize the observation matrix with all ones in the first observation, indicating that all locations are initially observable
+        self.obs_matrix[0, :, :] = 1.0
 
     def get_A(self, ant):
         '''
@@ -210,6 +221,7 @@ class MDP(object):
     The MDP class represents a Markov Decision Process (MDP) used in the ant simulation.
     It initializes the MDP with transition matrices A, B, and C, and provides methods for state inference, action inference, and other MDP-related operations.
     '''
+
     def __init__(self, A, B, C):
         '''
         Constructor method that initializes an instance of the `MDP` class.
@@ -448,10 +460,11 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
     distance = 0
     ant_locations = []
     round_trips_over_time = []
+    round_trips_time = []
 
     for t in range(num_steps):
         t_dis = 0
-        
+
         # Calculate total distance between ants
         for ant in ants:
             for ant_2 in ants:
@@ -490,8 +503,13 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
 
                 if is_complete:
                     paths.append(traj)
+                    # Record time taken for each round trip
+                    round_trips_time.append(
+                        t-ant.last_round_trip_completed_time)
+                    ant.last_round_trip_completed_time = t
 
-        # Decay the pheromones                    
+
+        # Decay the pheromones
         env.decay()
 
         # Save images and collect simulation metrics
@@ -506,6 +524,9 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
         round_trips_over_time.append(completed_trips / max_ants)
         ant_locations.append([[ant.x_pos, ant.y_pos] for ant in ants])
 
+    # Calculate average round trip time
+    average_time_of_a_round_trip = np.mean(round_trips_time)
+    
     """
     dis_coeff = 0
     for ant in ants:
