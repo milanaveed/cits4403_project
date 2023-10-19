@@ -211,8 +211,8 @@ class Env(object):
             img = img.reshape(fig.canvas.get_width_height()[::-1] + (3,))
             plt.close("all")
             return img
-        else:
-            plt.savefig(name)
+        # else:
+            # plt.savefig(name)
         plt.close("all")
 
 
@@ -461,6 +461,7 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
     ant_locations = []
     round_trips_over_time = []
     round_trips_time = []
+    average_round_trips_time = []
 
     for t in range(num_steps):
         t_dis = 0
@@ -507,7 +508,12 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
                     round_trips_time.append(
                         t-ant.last_round_trip_completed_time)
                     ant.last_round_trip_completed_time = t
-
+            
+        # Calculate average round trip time
+        if not round_trips_time:
+            average_round_trips_time.append(0)
+        else:
+            average_round_trips_time.append(np.mean(round_trips_time))
 
         # Decay the pheromones
         env.decay()
@@ -524,8 +530,7 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
         round_trips_over_time.append(completed_trips / max_ants)
         ant_locations.append([[ant.x_pos, ant.y_pos] for ant in ants])
 
-    # Calculate average round trip time
-    average_time_of_a_round_trip = np.mean(round_trips_time)
+    
     
     """
     dis_coeff = 0
@@ -534,12 +539,12 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
     """
 
     # Save the animated gif of the simulation
-    if save:
-        save_gif(imgs, f"imgs/{name}.gif")
+    # if save:
+        # save_gif(imgs, f"imgs/{name}.gif")
 
     ant_locations = np.array(ant_locations)
     round_trips_over_time = np.array(round_trips_over_time)
-    np.save(f"imgs/{name}_locations", ant_locations)
-    np.save(f"imgs/{name}_round_trips", round_trips_over_time)
+    # np.save(f"imgs/{name}_locations", ant_locations)
+    # np.save(f"imgs/{name}_round_trips", round_trips_over_time)
 
-    return completed_trips, np.array(paths), distance
+    return completed_trips, np.array(paths), distance, average_round_trips_time

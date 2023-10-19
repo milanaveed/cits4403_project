@@ -6,7 +6,7 @@ ADD_ANT_EVERY = 50  # An integer representing the frequency at which ants are ad
 INIT_X = 20  # Initial coordinate x for the ants when they start in the simulation
 INIT_Y = 30  # Initial coordinate y for the ants when they start in the simulation
 
-# NEST_FACTOR = 0.1
+NEST_FACTOR = 0.1
 
 GRID = [40, 40]  # Define the grid size
 GRID_SIZE = np.prod(GRID)  # Calculate the total number of grid cells
