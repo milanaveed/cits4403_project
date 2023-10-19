@@ -14,8 +14,13 @@ FOCAL_SIZE = np.prod(FOCAL_AREA)
 ACTION_MAP = [(-1, -1), (0, -1), (1, -1), (-1, 0), (0, 0), (1, 0), (-1, 1), (0, 1), (1, 1)]
 OPPOSITE_ACTIONS = list(reversed(range(len(ACTION_MAP))))
 
+<<<<<<< HEAD
 FOOD_LOCATION = [40, 0]
 FOOD_SIZE = [5, 5]
+=======
+FOOD_LOCATION = [40, 5]
+FOOD_SIZE = [10, 10]
+>>>>>>> 3d30b4e04b3fdeb244d45b33e7d9e9c1dcf668da
 
 # WALL_LEFT = 15
 # WALL_RIGHT = 25
@@ -26,9 +31,15 @@ WALL_RIGHT = 40
 WALL_TOP = 10
 
 NUM_PHEROMONE_LEVELS = 10
+<<<<<<< HEAD
 DECAY_FACTOR = 0.01
 # DECAY_FACTOR = 0.005
 # DECAY_FACTOR = 1.0
+=======
+# DECAY_FACTOR = 0.05
+DECAY_FACTOR = 0.005
+# DECAY_FACTOR = 0.1
+>>>>>>> 3d30b4e04b3fdeb244d45b33e7d9e9c1dcf668da
 
 NUM_OBSERVATIONS = NUM_PHEROMONE_LEVELS
 NUM_STATES = FOCAL_SIZE
