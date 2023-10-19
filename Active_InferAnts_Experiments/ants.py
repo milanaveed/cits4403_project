@@ -5,6 +5,11 @@ import matplotlib
 import matplotlib.pyplot as plt
 import imageio
 
+from sklearn.cluster import DBSCAN
+from esda.moran import Moran
+from libpysal.weights import lat2W
+from scipy.spatial.distance import cdist
+
 # matplotlib.use("Agg")
 matplotlib.use("TkAgg")
 
@@ -19,7 +24,8 @@ class Ant(object):
         self.backward_step = 0
         self.is_returning = False
         self.timer = 0
-        self.time_since_last_round_trip = 0
+        # self.time_since_last_round_trip = 0
+        self.number_of_round_trips = 0
 
     def update_forward(self, x_pos, y_pos):
         self.x_pos = x_pos
@@ -36,7 +42,8 @@ class Env(object):
     def __init__(self):
         self.visit_matrix = np.zeros((cf.GRID[0], cf.GRID[1]))
         self.obs_matrix = np.zeros((cf.NUM_OBSERVATIONS, cf.GRID[0], cf.GRID[1]))
-        self.obs_matrix[0, :, :] = 1.0
+        # self.obs_matrix[0, :, :] = 1.0
+        self.obs_matrix[0, :, :] = 0.0
 
     def get_A(self, ant):
         A = np.zeros((cf.NUM_OBSERVATIONS, cf.NUM_STATES))
@@ -121,6 +128,45 @@ class Env(object):
                     curr_obs = curr_obs - 1
                     self.obs_matrix[:, x, y] = 0.0
                     self.obs_matrix[curr_obs, x, y] = 1.0
+
+    # def get_pheromone_values(self):
+    #     pheromone_values = []
+    #     for x in range(cf.GRID[0]):
+    #         for y in range(cf.GRID[1]):
+    #             curr_obs = np.argmax(self.obs_matrix[:, x, y])
+    #             pheromone_values.append(curr_obs)
+    #     return np.array(pheromone_values)
+
+    def get_nonzero_pheromone_locations(self):
+        pheromone_locations = []
+        for x in range(cf.GRID[0]):
+            for y in range(cf.GRID[1]):
+                curr_obs = np.argmax(self.obs_matrix[:, x, y])
+                # if self.obs_matrix[:, x, y] > 0.0:
+                if curr_obs > 0.0:
+                    # print(curr_obs)
+                    pheromone_locations.append((x, y))
+        return np.array(pheromone_locations)
+
+    def get_values(self, ants):
+        ant_locations = []
+        pheromone_values = []
+        for ant in ants:
+            ant_locations.append((ant.x_pos, ant.y_pos))
+            pheromone_values.append(np.argmax(self.obs_matrix[:, ant.x_pos, ant.y_pos]))
+        return np.array(ant_locations), np.array(pheromone_values)
+        
+    def run_dbscan_on_pheromone_locs(self, eps, min_samples):
+        pheromone_locations = self.get_nonzero_pheromone_locations()
+        dbscan = DBSCAN(eps = eps, min_samples = min_samples)
+        labels = dbscan.fit_predict(pheromone_locations)
+        return labels
+
+    def run_dbscan_on_ant_locs(self, eps, min_samples, ants):
+        ant_locations, _ = self.get_values(ants)
+        dbscan = DBSCAN(eps = eps, min_samples = min_samples)
+        labels = dbscan.fit_predict(ant_locations)
+        return labels
 
     def plot(self, ants, savefig=False, name="", ant_only_gif=False):
         x_pos_forward, y_pos_forward = [], []
@@ -277,8 +323,7 @@ def plot_path(path, save_name):
 def save_gif(imgs, path, fps=32):
     imageio.mimsave(path, imgs, fps=fps)
 
-
-def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", ant_only_gif=False):
+def main(num_steps, init_ants, max_ants, C, ctr, num_runs, save=True, switch=False, name="", ant_only_gif=False):
     env = Env()
     ants = []
     paths = []
@@ -292,11 +337,21 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
 
     imgs = []
     completed_trips = 0
+
+    Morans_i_values = []
+
     distance = 0
     distances = []
-    round_trip_times = []
+
+    cluster_density = 0
+    cluster_densities = []
+    num_clusters = []
+
     ant_locations = []
-    round_trips_over_time = []
+    num_round_trips_per_time = []
+
+    num_rt_at_time_t = 0
+
     for t in range(num_steps):
         t_dis = 0
 
@@ -305,13 +360,58 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
                 t_dis += dis(ant.x_pos, ant.y_pos, ant_2.x_pos, ant_2.y_pos)
 
         current_avg_dist = t_dis / len(ants)
-
         distance += current_avg_dist
-
         distances.append(current_avg_dist)
 
+        ant_positions, pheromone_values = env.get_values(ants)
+
+        # Combine ant locations and pheromone values
+        Z = np.column_stack((ant_positions, pheromone_values))
+
+        # Create weight matrix
+        w = lat2W(Z.shape[0], Z.shape[1])
+
+        # Create PySAL Moran obj
+        m_i = Moran(Z, w)
+
+        # add to the Moran's I list
+        Morans_i_values.append(m_i.I)
+
+        if len(paths) == 0:
+            cluster_densities.append(0)
+            num_clusters.append(0)
+        else:
+
+            # ant_trajectory_locations = [point for trajectory in paths for point in trajectory]
+
+
+            # Create and fit a DBSCAN model
+            eps = 5 
+            # min_samples = len(ants) // 5
+            min_samples = 3
+            dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+            dbscan_labels = dbscan.fit_predict(ant_positions)
+
+            # the number of DBSCAN Clusters
+            n_clusters = len(set(dbscan_labels)) - (1 if -1 in dbscan_labels else 0)
+
+            # Calculate cluster sizes
+            cluster_sizes = [len(ant_positions[dbscan_labels == label]) for label in set(dbscan_labels)]
+
+            # Calculate the average density
+            if cluster_sizes:
+                average_density = len(ant_positions) / len(cluster_sizes)
+            else:
+                average_density = 0
+
+            # print("Average Density of Clusters:", average_density)
+
+            cluster_densities.append(average_density)
+            num_clusters.append(n_clusters)
+
+
         # if t % (num_steps // 100) == 0:
-        print(f"{t}/{num_steps}")
+        print(f"Step {t + 1}/{num_steps} of Simulation {ctr + 1}/{num_runs}")
 
         if t % cf.ADD_ANT_EVERY == 0 and len(ants) < max_ants:
             ant = create_ant(cf.INIT_X, cf.INIT_Y, C)
@@ -321,9 +421,8 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
             ant.mdp.reset(obs)
             ants.append(ant)
 
-        if switch and t % (num_steps // 2) == 0:
-            # switch
-            cf.FOOD_LOCATION[0] = cf.GRID[0] - cf.FOOD_LOCATION[0]
+        # if switch and t % (num_steps // 2) == 0:
+        #     cf.FOOD_LOCATION[0] = cf.GRID[0] - cf.FOOD_LOCATION[0]
 
         for ant in ants:
             if not ant.is_returning:
@@ -339,52 +438,31 @@ def main(num_steps, init_ants, max_ants, C, save=True, switch=False, name="", an
                 if is_complete:
                     paths.append(traj)
 
-                    round_trip_times.append(t - ant.time_since_last_round_trip)
-                    ant.time_since_last_round_trip = t
+                    # increment the number of round trips by 1
+                    ant.number_of_round_trips += 1
+                    num_rt_at_time_t += 1
 
+        num_round_trips_per_time.append(num_rt_at_time_t)
+    
         if save:
-            # if t in np.arange(0, num_steps, num_steps // 20):
-            if t in np.arange(0, num_steps, num_steps // 10):
-                # env.plot(ants, savefig=True, name=f"imgs/{name}_{t}.png")
-                # env.plot(ants, savefig=True, name=f"my_imgs/{name}_{t}.png")
-                # env.plot(ants, savefig=True, name=f"my_imgs_2/{name}_{t}.png")
-                # env.plot(ants, savefig=True, name=f"my_imgs_dbscan/{name}_{t}.png")
-                # env.plot(ants, savefig=True, name=f"my_imgs_dbscan_2/{name}_{t}.png")
-                env.plot(ants, savefig=True, name=f"my_imgs_dbscan_70_ants/{name}_{t}.png")
+            if t in np.arange(0, num_steps, num_steps // 20):
+            # if t in np.arange(0, num_steps):
+                env.plot(ants, savefig=True, name=f"my_imgs_full_sim/{name}_{t}.png")
             else:
                 img = env.plot(ants, ant_only_gif=ant_only_gif)
                 imgs.append(img)
 
-        round_trips_over_time.append(completed_trips / max_ants)
+        # round_trips_over_time.append(completed_trips / max_ants)
         ant_locations.append([[ant.x_pos, ant.y_pos] for ant in ants])
 
-    """
-    dis_coeff = 0
-    for ant in ants:
-        dis_coeff += sum(ant.distance)
-    """
-
     if save:
-        # save_gif(imgs, f"imgs/{name}.gif")
-        # save_gif(imgs, f"my_imgs_dbscan/{name}.gif")
-        # save_gif(imgs, f"my_imgs_dbscan_2/{name}.gif")
-        save_gif(imgs, f"my_imgs_dbscan_70_ants/{name}.gif")
+        save_gif(imgs, f"my_imgs_full_sim/{name}.gif")
 
 
     ant_locations = np.array(ant_locations)
-    round_trips_over_time = np.array(round_trips_over_time)
 
-    # np.save(f"imgs/{name}_locations", ant_locations)
-    # np.save(f"imgs/{name}_round_trips", round_trips_over_time)
-
-    # np.save(f"my_imgs_dbscan/{name}_locations", ant_locations)
-    # np.save(f"my_imgs_dbscan/{name}_round_trips", round_trips_over_time)
-
-    # np.save(f"my_imgs_dbscan_2/{name}_locations", ant_locations)
-    # np.save(f"my_imgs_dbscan_2/{name}_round_trips", round_trips_over_time)
-
-    np.save(f"my_imgs_dbscan_70_ants/{name}_locations", ant_locations)
-    np.save(f"my_imgs_dbscan_70_ants/{name}_round_trips", round_trips_over_time)
+    np.save(f"my_imgs_full_sim/{name}_locations", ant_locations)
 
 
-    return completed_trips, np.array(paths), distance, distances, sum(round_trip_times)/num_steps
+    return completed_trips, np.array(paths), distance, distances, num_round_trips_per_time, ants, cluster_densities, num_clusters, Morans_i_values
+

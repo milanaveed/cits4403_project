@@ -7,11 +7,13 @@ import config as cf
 from ants import main, plot_path
 
 NAME = "main"
-NUM_STEPS = 100
+NUM_STEPS = 1000
 # INIT_ANTS = 70
 # MAX_ANTS = 70
 ANT_POPS = [10, 30, 50, 70]
+ANT_POPS_COLOURS = ["blue", "orange", "limegreen", "red"]
 ANT_POP_DISTS = []
+AVG_NUM_RT_PER_POP_SIZE_PER_TIME = []
 
 # Path("my_imgs_2").mkdir(parents=True, exist_ok=True)
 # Path("my_imgs_dbscan_2").mkdir(parents=True, exist_ok=True)
@@ -28,8 +30,7 @@ for o in range(cf.NUM_OBSERVATIONS):
 if __name__ == "__main__":
 
     for i in range(len(ANT_POPS)):
-
-        num_round_trips, paths, coeff, distances, avg_round_trip_time = main(
+        num_round_trips, paths, coeff, distances, num_round_trips_per_time, ants = main(
             num_steps=NUM_STEPS,
             init_ants=ANT_POPS[i],
             max_ants=ANT_POPS[i],
@@ -41,43 +42,105 @@ if __name__ == "__main__":
         )
 
         ANT_POP_DISTS.append(distances)
+        AVG_NUM_RT_PER_POP_SIZE_PER_TIME.append(num_round_trips_per_time)
 
         print(f"ANT_POPS[i]: {ANT_POPS[i]}")
-        print(f"avg_round_trip_time: {avg_round_trip_time}")
+        print(f"num_round_trips_per_time: {num_round_trips_per_time}")
         print(f"num_round_trips {num_round_trips} / coeff {coeff / ANT_POPS[i]}")
         # f = open(f"my_imgs_2/{NAME}.txt", "w")
         # f = open(f"my_imgs_dbscan/{NAME}.txt", "w")
         # f = open(f"my_imgs_dbscan_2/{NAME}.txt", "w")
 
-        # f = open(f"my_imgs_dbscan_70_ants/{NAME}.txt", "w")
-        # f.write(f"num_round_trips {num_round_trips} / coeff {coeff / ANT_POPS[i]}")
-        # f.close()
+        f = open(f"my_imgs_dbscan_70_ants/{NAME}.txt", "w")
+        f.write(f"num_round_trips {num_round_trips} / coeff {coeff / ANT_POPS[i]}")
+        f.close()
 
     plt.title("Average Ant Distance Over Time")
     plt.xlabel("Time")
     plt.ylabel("AVG Ant Dist")
-    # plt.plot([step for step in range(NUM_STEPS)], ANT_POP_DISTS[0])
-    # plt.plot([step for step in range(NUM_STEPS)], ANT_POP_DISTS[1])
-    # plt.plot([step for step in range(NUM_STEPS)], ANT_POP_DISTS[2])
-    # plt.plot([step for step in range(NUM_STEPS)], ANT_POP_DISTS[3])
-    # plt.show()
-
-    # Plot the data with labels
     for i in range(4):
         plt.plot(
             [step for step in range(NUM_STEPS)], 
             ANT_POP_DISTS[i], 
-            label=f'{ANT_POPS[i]}'
+            label=f'{ANT_POPS[i]}',
+            color = ANT_POPS_COLOURS[i]
         )
-
-    # Add a legend
     plt.legend()
-
-    # Show the plot
     plt.show()
 
+    plt.title("Average Number of RTs Over Time")
+    plt.xlabel("Time")
+    plt.ylabel("AVG Num RTs")
+    for i in range(4):
+        plt.plot(
+            [step for step in range(NUM_STEPS)], 
+            AVG_NUM_RT_PER_POP_SIZE_PER_TIME[i], 
+            label=f'{ANT_POPS[i]}',
+            color = ANT_POPS_COLOURS[i]
+        )
+    plt.legend()
+    plt.show()
+
+    # num_round_trips, paths, coeff, distances, num_round_trips_per_time, ants = main(
+    #     num_steps=NUM_STEPS,
+    #     init_ants=ANT_POPS[3],
+    #     max_ants=ANT_POPS[3],
+    #     C=C,
+    #     save=True,
+    #     switch=True,
+    #     name=NAME,
+    #     ant_only_gif=False,
+    # )
+
+    # # ANT_POP_DISTS.append(distances)
+    # # AVG_NUM_RT_PER_POP_SIZE_PER_TIME.append(num_round_trips_per_time)
+
+    # print(f"ANT_POPS[3]: {ANT_POPS[3]}")
+    # # print(f"num_round_trips_per_time: {num_round_trips_per_time}")
+    # print(f"num_round_trips {num_round_trips} / coeff {coeff / ANT_POPS[3]}")
+    # # f = open(f"my_imgs_2/{NAME}.txt", "w")
+    # # f = open(f"my_imgs_dbscan/{NAME}.txt", "w")
+    # # f = open(f"my_imgs_dbscan_2/{NAME}.txt", "w")
+
+    # # f = open(f"my_imgs_dbscan_70_ants/{NAME}.txt", "w")
+    # # f.write(f"num_round_trips {num_round_trips} / coeff {coeff / ANT_POPS[i]}")
+    # # f.close()
+
+    # plt.title("Average Ant Distance Over Time")
+    # plt.xlabel("Time")
+    # plt.ylabel("AVG Ant Dist")
+    # plt.plot(
+    #     [step for step in range(NUM_STEPS)], 
+    #     distances, 
+    #     label=f'{ANT_POPS[3]}'
+    # )
+    # plt.legend()
+    # plt.show()
+
+    # # plt.title("Occourence of RTs in Time")
+    # # plt.xlabel("Time")
+    # # plt.ylabel("RT")
+    # # plt.bar(
+    # #     [step for step in range(NUM_STEPS)], 
+    # #     num_round_trips_per_time, 
+    # #     label=f'{ANT_POPS[3]}'
+    # # )
+    # # plt.legend()
+    # # plt.show()
+
+    # plt.title("Number RT Per Ant")
+    # plt.xlabel("Ants")
+    # plt.ylabel("Num RTs")
+    # plt.bar(
+    #     list(range(len(ants))), 
+    #     sorted([ant.number_of_round_trips for ant in ants]) #, 
+    #     # label=f''
+    # )
+    # plt.legend()
+    # plt.show()
 
 
+#############################################################################################################
 
     
     # for i in range(len(paths)):

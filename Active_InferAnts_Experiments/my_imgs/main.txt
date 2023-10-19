@@ -1,1 +1,0 @@
-num_round_trips 37 / coeff 24710.840048892755

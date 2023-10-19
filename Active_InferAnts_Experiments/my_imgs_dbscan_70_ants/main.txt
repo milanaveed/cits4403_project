@@ -1,1 +1,0 @@
-num_round_trips 28 / coeff 14255.946963945502
