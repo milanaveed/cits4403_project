@@ -1,1 +1,0 @@
-num_round_trips 30 / coeff 26307.563796484385
